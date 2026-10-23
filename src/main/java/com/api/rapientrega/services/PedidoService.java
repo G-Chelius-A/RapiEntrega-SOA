@@ -42,14 +42,14 @@ public class PedidoService {
     public record ItemPedidoDto(
             String producto,
             Integer cantidad,
-            BigDecimal precioUnitario
-    ) {}
+            BigDecimal precioUnitario) {
+    }
 
     public record CrearPedidoRequest(
             Long clienteId,
             Long restauranteId,
-            List<ItemPedidoDto> items
-    ) {}
+            List<ItemPedidoDto> items) {
+    }
 
     private final PedidoRepository pedidoRepository;
     private final DetallePedidoRepository detallePedidoRepository;
@@ -59,11 +59,11 @@ public class PedidoService {
     private final EntregaService entregaService;
 
     public PedidoService(PedidoRepository pedidoRepository,
-                         DetallePedidoRepository detallePedidoRepository,
-                         ClienteRepository clienteRepository,
-                         RestauranteRepository restauranteRepository,
-                         PagoService pagoService,
-                         EntregaService entregaService) {
+            DetallePedidoRepository detallePedidoRepository,
+            ClienteRepository clienteRepository,
+            RestauranteRepository restauranteRepository,
+            PagoService pagoService,
+            EntregaService entregaService) {
         this.pedidoRepository = pedidoRepository;
         this.detallePedidoRepository = detallePedidoRepository;
         this.clienteRepository = clienteRepository;
@@ -86,10 +86,12 @@ public class PedidoService {
         }
 
         Cliente cliente = clienteRepository.findById(request.clienteId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + request.clienteId()));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Cliente no encontrado con ID: " + request.clienteId()));
 
         Restaurante restaurante = restauranteRepository.findById(request.restauranteId())
-                .orElseThrow(() -> new ResourceNotFoundException("Restaurante no encontrado con ID: " + request.restauranteId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Restaurante no encontrado con ID: " + request.restauranteId()));
 
         if (request.items() == null || request.items().isEmpty()) {
             throw new BusinessRuleException("El pedido debe contener al menos un producto");
@@ -122,7 +124,7 @@ public class PedidoService {
                 LocalDateTime.now(),
                 totalCalculado,
                 null, // fechaEntrega nula
-                null  // fechaLimiteAceptacion se define tras confirmación de pago
+                null // fechaLimiteAceptacion se define tras confirmación de pago
         );
 
         Pedido pedidoGuardado = pedidoRepository.save(pedido);
@@ -133,8 +135,7 @@ public class PedidoService {
                     pedidoGuardado,
                     item.producto().trim(),
                     item.cantidad(),
-                    item.precioUnitario()
-            );
+                    item.precioUnitario());
             detallePedidoRepository.save(detalle);
         }
 
@@ -144,7 +145,8 @@ public class PedidoService {
 
     /**
      * 9 y 10. Coordinar procesamiento del pago:
-     * Si el pago es exitoso, formaliza el inicio del plazo de 5 minutos para el restaurante
+     * Si el pago es exitoso, formaliza el inicio del plazo de 5 minutos para el
+     * restaurante
      * pasando el estado a PENDIENTE_ACEPTACION.
      */
     @Transactional
@@ -152,8 +154,9 @@ public class PedidoService {
         Pedido pedido = consultarPorId(pedidoId);
 
         if (!ESTADO_CREADO.equalsIgnoreCase(pedido.getEstado()) &&
-            !ESTADO_PENDIENTE_PAGO.equalsIgnoreCase(pedido.getEstado())) {
-            throw new BusinessRuleException("El pedido no se encuentra en estado para procesar pago. Estado actual: " + pedido.getEstado());
+                !ESTADO_PENDIENTE_PAGO.equalsIgnoreCase(pedido.getEstado())) {
+            throw new BusinessRuleException(
+                    "El pedido no se encuentra en estado para procesar pago. Estado actual: " + pedido.getEstado());
         }
 
         Pago pago = pagoService.procesarPago(pedidoId, metodo, referenciaIdempotencia);
@@ -162,14 +165,17 @@ public class PedidoService {
             LocalDateTime ahora = LocalDateTime.now();
             pedido.setEstado(ESTADO_PENDIENTE_ACEPTACION);
             pedido.setFechaLimiteAceptacion(ahora.plusMinutes(PLAZO_ACEPTACION_MINUTOS));
-            log.info("Pago confirmado para pedido {}. Plazo de 5 minutos iniciado. Límite: {}", pedidoId, pedido.getFechaLimiteAceptacion());
+            log.info("Pago confirmado para pedido {}. Plazo de 5 minutos iniciado. Límite: {}", pedidoId,
+                    pedido.getFechaLimiteAceptacion());
         } else if (PagoService.ESTADO_RECHAZADO.equalsIgnoreCase(pago.getEstado())) {
             pedido.setEstado(ESTADO_PENDIENTE_PAGO);
             log.warn("Pago rechazado para pedido {}. Permanece en PENDIENTE_PAGO.", pedidoId);
         } else {
             // INCIERTO o PENDIENTE
             pedido.setEstado(ESTADO_PENDIENTE_PAGO);
-            log.warn("Pago en estado incierto para pedido {}. Se mantiene sin presentar al restaurante hasta confirmación.", pedidoId);
+            log.warn(
+                    "Pago en estado incierto para pedido {}. Se mantiene sin presentar al restaurante hasta confirmación.",
+                    pedidoId);
         }
 
         return pedidoRepository.save(pedido);
@@ -178,7 +184,8 @@ public class PedidoService {
     /**
      * 11. Restaurante acepta el pedido:
      * - Verifica que no haya vencido el plazo de 5 minutos.
-     * - Utiliza actualización condicional para evitar conflicto con el scheduler de cancelación.
+     * - Utiliza actualización condicional para evitar conflicto con el scheduler de
+     * cancelación.
      * - Si se acepta a tiempo, coordina la asignación del repartidor.
      */
     @Transactional
@@ -186,20 +193,24 @@ public class PedidoService {
         Pedido pedido = consultarPorId(pedidoId);
 
         if (!ESTADO_PENDIENTE_ACEPTACION.equalsIgnoreCase(pedido.getEstado())) {
-            throw new BusinessRuleException("El pedido no está pendiente de aceptación. Estado actual: " + pedido.getEstado());
+            throw new BusinessRuleException(
+                    "El pedido no está pendiente de aceptación. Estado actual: " + pedido.getEstado());
         }
 
         LocalDateTime ahora = LocalDateTime.now();
         if (pedido.getFechaLimiteAceptacion() != null && ahora.isAfter(pedido.getFechaLimiteAceptacion())) {
             // Venció antes de la llamada: cancelar y reembolsar de forma segura
             cancelarPorVencimiento(pedidoId);
-            throw new BusinessRuleException("El plazo de 5 minutos para aceptar el pedido ha vencido. El pedido ha sido cancelado.");
+            throw new BusinessRuleException(
+                    "El plazo de 5 minutos para aceptar el pedido ha vencido. El pedido ha sido cancelado.");
         }
 
         // Transición atómica condicional
-        int actualizados = pedidoRepository.updateEstadoCondicional(pedidoId, ESTADO_PENDIENTE_ACEPTACION, ESTADO_ACEPTADO);
+        int actualizados = pedidoRepository.updateEstadoCondicional(pedidoId, ESTADO_PENDIENTE_ACEPTACION,
+                ESTADO_ACEPTADO);
         if (actualizados == 0) {
-            throw new BusinessRuleException("No se pudo aceptar el pedido; pudo haber sido cancelado concurrentemente por vencimiento");
+            throw new BusinessRuleException(
+                    "No se pudo aceptar el pedido; pudo haber sido cancelado concurrentemente por vencimiento");
         }
 
         pedido = consultarPorId(pedidoId);
@@ -209,7 +220,8 @@ public class PedidoService {
         try {
             pedido = entregaService.asignarRepartidorMasCercano(pedidoId);
         } catch (Exception ex) {
-            log.warn("No se pudo completar asignación inmediata de repartidor para pedido {}: {}", pedidoId, ex.getMessage());
+            log.warn("No se pudo completar asignación inmediata de repartidor para pedido {}: {}", pedidoId,
+                    ex.getMessage());
         }
 
         return pedido;
@@ -225,10 +237,12 @@ public class PedidoService {
         Pedido pedido = consultarPorId(pedidoId);
 
         if (!ESTADO_PENDIENTE_ACEPTACION.equalsIgnoreCase(pedido.getEstado())) {
-            throw new BusinessRuleException("El pedido no está pendiente de aceptación. Estado actual: " + pedido.getEstado());
+            throw new BusinessRuleException(
+                    "El pedido no está pendiente de aceptación. Estado actual: " + pedido.getEstado());
         }
 
-        int actualizados = pedidoRepository.updateEstadoCondicional(pedidoId, ESTADO_PENDIENTE_ACEPTACION, ESTADO_RECHAZADO);
+        int actualizados = pedidoRepository.updateEstadoCondicional(pedidoId, ESTADO_PENDIENTE_ACEPTACION,
+                ESTADO_RECHAZADO);
         if (actualizados == 0) {
             throw new BusinessRuleException("No se pudo rechazar el pedido debido a un cambio concurrente de estado");
         }
@@ -246,7 +260,8 @@ public class PedidoService {
      */
     @Transactional
     public boolean cancelarPorVencimiento(Long pedidoId) {
-        int actualizados = pedidoRepository.updateEstadoCondicional(pedidoId, ESTADO_PENDIENTE_ACEPTACION, ESTADO_CANCELADO);
+        int actualizados = pedidoRepository.updateEstadoCondicional(pedidoId, ESTADO_PENDIENTE_ACEPTACION,
+                ESTADO_CANCELADO);
         if (actualizados > 0) {
             log.info("Pedido {} cancelado exitosamente por vencimiento del plazo de 5 minutos", pedidoId);
             pagoService.solicitarReembolsoDePedido(pedidoId, "Cancelación por vencimiento de 5 minutos");
