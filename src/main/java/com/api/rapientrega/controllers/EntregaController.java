@@ -17,34 +17,34 @@ public class EntregaController {
     }
 
     @PostMapping("/pedidos/{pedidoId}/asignar")
-    public ResponseEntity<Pedido> asignarRepartidor(@PathVariable Long pedidoId) {
+    public ResponseEntity<Pedido> asignarRepartidor(@PathVariable("pedidoId") Long pedidoId) {
         Pedido pedido = entregaService.asignarRepartidorMasCercano(pedidoId);
         return ResponseEntity.ok(pedido);
     }
 
     @PostMapping("/pedidos/{pedidoId}/iniciar")
-    public ResponseEntity<Pedido> iniciarEntrega(@PathVariable Long pedidoId) {
+    public ResponseEntity<Pedido> iniciarEntrega(@PathVariable("pedidoId") Long pedidoId) {
         Pedido pedido = entregaService.iniciarEntrega(pedidoId);
         return ResponseEntity.ok(pedido);
     }
 
     @PostMapping("/pedidos/{pedidoId}/completar")
-    public ResponseEntity<Pedido> completarEntrega(@PathVariable Long pedidoId) {
+    public ResponseEntity<Pedido> completarEntrega(@PathVariable("pedidoId") Long pedidoId) {
         Pedido pedido = entregaService.completarEntrega(pedidoId);
         return ResponseEntity.ok(pedido);
     }
 
     @GetMapping("/pedidos/{pedidoId}/seguimiento")
-    public ResponseEntity<Repartidor> consultarSeguimiento(@PathVariable Long pedidoId) {
+    public ResponseEntity<Repartidor> consultarSeguimiento(@PathVariable("pedidoId") Long pedidoId) {
         Repartidor repartidor = entregaService.consultarSeguimientoPedido(pedidoId);
         return ResponseEntity.ok(repartidor);
     }
 
     @PatchMapping("/repartidores/{repartidorId}/ubicacion")
     public ResponseEntity<Repartidor> actualizarUbicacionRepartidor(
-            @PathVariable Long repartidorId,
-            @RequestParam Double latitud,
-            @RequestParam Double longitud) {
+            @PathVariable("repartidorId") Long repartidorId,
+            @RequestParam(name = "latitud") Double latitud,
+            @RequestParam(name = "longitud") Double longitud) {
         Repartidor repartidor = entregaService.actualizarUbicacionRepartidor(repartidorId, latitud, longitud);
         return ResponseEntity.ok(repartidor);
     }

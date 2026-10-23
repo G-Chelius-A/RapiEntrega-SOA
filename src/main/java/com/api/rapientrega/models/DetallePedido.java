@@ -20,6 +20,7 @@ public class DetallePedido {
     @NotNull(message = "El pedido es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_pedido", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Pedido pedido;
 
     @NotBlank(message = "El producto no puede estar vacío")

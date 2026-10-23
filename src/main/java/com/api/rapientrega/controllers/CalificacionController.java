@@ -20,22 +20,22 @@ public class CalificacionController {
 
     @PostMapping("/pedidos/{pedidoId}")
     public ResponseEntity<Calificacion> calificarPedido(
-            @PathVariable Long pedidoId,
-            @RequestParam Integer calificacion,
-            @RequestParam(required = false) String comentario) {
+            @PathVariable("pedidoId") Long pedidoId,
+            @RequestParam(name = "calificacion") Integer calificacion,
+            @RequestParam(name = "comentario", required = false) String comentario) {
         Calificacion nuevaCalificacion = calificacionService.registrarCalificacion(pedidoId, calificacion, comentario);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevaCalificacion);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Calificacion> consultarPorId(@PathVariable Long id) {
+    public ResponseEntity<Calificacion> consultarPorId(@PathVariable("id") Long id) {
         Calificacion calificacion = calificacionService.consultarPorId(id);
         return ResponseEntity.ok(calificacion);
     }
 
     @GetMapping("/pedidos/{pedidoId}")
-    public ResponseEntity<List<Calificacion>> consultarPorPedido(@PathVariable Long pedidoId) {
-        List<Calificacion> calificaciones = calificacionService.consultarPorPedidoId(pedidoId);
+    public ResponseEntity<List<Calificacion>> consultarPorPedido(@PathVariable("pedidoId") Long idPedido) {
+        List<Calificacion> calificaciones = calificacionService.consultarPorPedidoId(idPedido);
         return ResponseEntity.ok(calificaciones);
     }
 }

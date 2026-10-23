@@ -18,15 +18,15 @@ public class PagoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Pago> consultarPorId(@PathVariable Long id) {
+    public ResponseEntity<Pago> consultarPorId(@PathVariable("id") Long id) {
         Pago pago = pagoService.consultarPorId(id);
         return ResponseEntity.ok(pago);
     }
 
     @GetMapping
     public ResponseEntity<List<Pago>> listarPagos(
-            @RequestParam(required = false) Long pedidoId,
-            @RequestParam(required = false) String estado) {
+            @RequestParam(name = "pedidoId", required = false) Long pedidoId,
+            @RequestParam(name = "estado", required = false) String estado) {
 
         if (pedidoId != null) {
             return ResponseEntity.ok(pagoService.consultarPorPedidoId(pedidoId));

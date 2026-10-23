@@ -18,15 +18,15 @@ public class ReembolsoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Reembolso> consultarPorId(@PathVariable Long id) {
+    public ResponseEntity<Reembolso> consultarPorId(@PathVariable("id") Long id) {
         Reembolso reembolso = reembolsoService.consultarPorId(id);
         return ResponseEntity.ok(reembolso);
     }
 
     @GetMapping
     public ResponseEntity<List<Reembolso>> listarReembolsos(
-            @RequestParam(required = false) Long pagoId,
-            @RequestParam(required = false) String estado) {
+            @RequestParam(name = "pagoId", required = false) Long pagoId,
+            @RequestParam(name = "estado", required = false) String estado) {
 
         if (pagoId != null) {
             return ResponseEntity.ok(reembolsoService.consultarPorPagoId(pagoId));

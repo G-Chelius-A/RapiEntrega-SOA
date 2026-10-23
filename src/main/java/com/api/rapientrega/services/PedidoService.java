@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -98,7 +97,6 @@ public class PedidoService {
         }
 
         BigDecimal totalCalculado = BigDecimal.ZERO;
-        List<DetallePedido> detallesAInsertar = new ArrayList<>();
 
         for (ItemPedidoDto item : request.items()) {
             if (item.producto() == null || item.producto().isBlank()) {
@@ -182,11 +180,11 @@ public class PedidoService {
     }
 
     /**
-     * 11. Restaurante acepta el pedido:
-     * - Verifica que no haya vencido el plazo de 5 minutos.
-     * - Utiliza actualización condicional para evitar conflicto con el scheduler de
-     * cancelación.
-     * - Si se acepta a tiempo, coordina la asignación del repartidor.
+     * [MÁQUINA DE ESTADOS Y ORQUESTACIÓN SOA]:
+     * - Valida el SLA de 5 minutos (Service Level Agreement) para evitar pedidos "fantasma".
+     * - Utiliza una transición condicional atómica a nivel SQL para resolver carreras entre la decisión
+     *   del restaurante y el job o timeout de expiración automática.
+     * - Si se aprueba, dispara de forma asíncrona/reactiva la orquestación con EntregaService.
      */
     @Transactional
     public Pedido aceptarPedidoPorRestaurante(Long pedidoId) {
@@ -197,15 +195,20 @@ public class PedidoService {
                     "El pedido no está pendiente de aceptación. Estado actual: " + pedido.getEstado());
         }
 
+        // [SLA TEMPORAL DE ATENCIÓN]:
+        // Si el restaurante tarda más de 5 minutos en responder, el pedido se revoca y se ordena
+        // reembolso automático para no retener el saldo del cliente indebidamente.
         LocalDateTime ahora = LocalDateTime.now();
         if (pedido.getFechaLimiteAceptacion() != null && ahora.isAfter(pedido.getFechaLimiteAceptacion())) {
-            // Venció antes de la llamada: cancelar y reembolsar de forma segura
             cancelarPorVencimiento(pedidoId);
             throw new BusinessRuleException(
                     "El plazo de 5 minutos para aceptar el pedido ha vencido. El pedido ha sido cancelado.");
         }
 
-        // Transición atómica condicional
+        // [TRANSICIÓN ATÓMICA DE ESTADO (COMPARE-AND-SWAP)]:
+        // Evita que un hilo de cancelación automática y el clic del restaurante causen inconsistencia:
+        // "UPDATE pedido SET estado = 'ACEPTADO' WHERE id = :id AND estado = 'PENDIENTE_ACEPTACION'"
+        // Solo 1 hilo puede cambiar el estado; si actualizados == 0, significa que la cancelación ganó.
         int actualizados = pedidoRepository.updateEstadoCondicional(pedidoId, ESTADO_PENDIENTE_ACEPTACION,
                 ESTADO_ACEPTADO);
         if (actualizados == 0) {
@@ -216,7 +219,8 @@ public class PedidoService {
         pedido = consultarPorId(pedidoId);
         pedido.setEstado(ESTADO_ACEPTADO);
 
-        // Coordinar asignación de repartidor
+        // [ORQUESTACIÓN DE SERVICIOS SOA]:
+        // Una vez aceptado, orquestamos la asignación logística inmediata con EntregaService.
         try {
             pedido = entregaService.asignarRepartidorMasCercano(pedidoId);
         } catch (Exception ex) {

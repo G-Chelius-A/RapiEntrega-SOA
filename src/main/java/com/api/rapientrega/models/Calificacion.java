@@ -18,6 +18,7 @@ public class Calificacion {
     @NotNull(message = "El pedido es obligatorio")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_pedido", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "cliente", "restaurante", "repartidor"})
     private Pedido pedido;
 
     @NotNull(message = "La calificación es obligatoria")

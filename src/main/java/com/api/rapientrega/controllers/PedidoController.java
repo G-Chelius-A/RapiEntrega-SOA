@@ -26,22 +26,22 @@ public class PedidoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Pedido> consultarPorId(@PathVariable Long id) {
+    public ResponseEntity<Pedido> consultarPorId(@PathVariable("id") Long id) {
         Pedido pedido = pedidoService.consultarPorId(id);
         return ResponseEntity.ok(pedido);
     }
 
     @GetMapping("/{id}/detalles")
-    public ResponseEntity<List<DetallePedido>> consultarDetalles(@PathVariable Long id) {
+    public ResponseEntity<List<DetallePedido>> consultarDetalles(@PathVariable("id") Long id) {
         List<DetallePedido> detalles = pedidoService.consultarDetalles(id);
         return ResponseEntity.ok(detalles);
     }
 
     @GetMapping
     public ResponseEntity<List<Pedido>> listarPedidos(
-            @RequestParam(required = false) Long clienteId,
-            @RequestParam(required = false) Long restauranteId,
-            @RequestParam(required = false) String estado) {
+            @RequestParam(name = "clienteId", required = false) Long clienteId,
+            @RequestParam(name = "restauranteId", required = false) Long restauranteId,
+            @RequestParam(name = "estado", required = false) String estado) {
 
         if (clienteId != null) {
             return ResponseEntity.ok(pedidoService.consultarPorClienteId(clienteId));
@@ -57,29 +57,29 @@ public class PedidoController {
 
     @PostMapping("/{id}/pagar")
     public ResponseEntity<Pedido> pagarPedido(
-            @PathVariable Long id,
-            @RequestParam(required = false, defaultValue = "TARJETA") String metodo,
-            @RequestParam(required = false) String referenciaIdempotencia) {
+            @PathVariable("id") Long id,
+            @RequestParam(name = "metodo", required = false, defaultValue = "TARJETA") String metodo,
+            @RequestParam(name = "referenciaIdempotencia", required = false) String referenciaIdempotencia) {
         Pedido pedidoActualizado = pedidoService.pagarPedido(id, metodo, referenciaIdempotencia);
         return ResponseEntity.ok(pedidoActualizado);
     }
 
     @PostMapping("/{id}/aceptar")
-    public ResponseEntity<Pedido> aceptarPedido(@PathVariable Long id) {
+    public ResponseEntity<Pedido> aceptarPedido(@PathVariable("id") Long id) {
         Pedido pedidoAceptado = pedidoService.aceptarPedidoPorRestaurante(id);
         return ResponseEntity.ok(pedidoAceptado);
     }
 
     @PostMapping("/{id}/rechazar")
     public ResponseEntity<Pedido> rechazarPedido(
-            @PathVariable Long id,
-            @RequestParam(required = false, defaultValue = "Rechazado por el restaurante") String motivo) {
+            @PathVariable("id") Long id,
+            @RequestParam(name = "motivo", required = false, defaultValue = "Rechazado por el restaurante") String motivo) {
         Pedido pedidoRechazado = pedidoService.rechazarPedidoPorRestaurante(id, motivo);
         return ResponseEntity.ok(pedidoRechazado);
     }
 
     @PostMapping("/{id}/cancelar")
-    public ResponseEntity<Void> cancelarPedidoPorVencimiento(@PathVariable Long id) {
+    public ResponseEntity<Void> cancelarPedidoPorVencimiento(@PathVariable("id") Long id) {
         boolean cancelado = pedidoService.cancelarPorVencimiento(id);
         if (cancelado) {
             return ResponseEntity.noContent().build();

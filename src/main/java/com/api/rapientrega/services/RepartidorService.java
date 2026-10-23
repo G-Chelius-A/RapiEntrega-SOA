@@ -4,8 +4,6 @@ import com.api.rapientrega.models.Pedido;
 import com.api.rapientrega.models.Repartidor;
 import com.api.rapientrega.repositories.PedidoRepository;
 import com.api.rapientrega.repositories.RepartidorRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,7 +12,6 @@ import java.util.List;
 @Service
 public class RepartidorService {
 
-    private static final Logger log = LoggerFactory.getLogger(RepartidorService.class);
 
     private final RepartidorRepository repartidorRepository;
     private final PedidoRepository pedidoRepository;

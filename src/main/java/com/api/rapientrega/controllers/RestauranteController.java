@@ -19,8 +19,8 @@ public class RestauranteController {
 
     @GetMapping
     public ResponseEntity<List<Restaurante>> listarRestaurantes(
-            @RequestParam(required = false) String categoria,
-            @RequestParam(required = false) String nombre) {
+            @RequestParam(name = "categoria", required = false) String categoria,
+            @RequestParam(name = "nombre", required = false) String nombre) {
 
         if (nombre != null && !nombre.isBlank()) {
             return ResponseEntity.ok(restauranteService.buscarPorNombre(nombre));
@@ -32,7 +32,7 @@ public class RestauranteController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Restaurante> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<Restaurante> obtenerPorId(@PathVariable("id") Long id) {
         Restaurante restaurante = restauranteService.obtenerPorId(id);
         return ResponseEntity.ok(restaurante);
     }
